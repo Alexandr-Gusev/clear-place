@@ -55,19 +55,23 @@ const updateCoords = async (req, res) => {
 };
 
 const app = express();
-app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173"
-    ],
-    credentials: true
-}));
+if (process.env.NODE_ENV !== 'production') {
+	app.use(cors({
+		origin: [
+			"http://localhost:5173",
+			"http://127.0.0.1:5173",
+			"http://localhost:4173",
+			"http://127.0.0.1:4173"
+		],
+		credentials: true
+	}));
+}
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'static')));
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+if (process.env.NODE_ENV !== 'production') {
+	app.use(express.static(path.join(__dirname, '../frontend/dist')));
+}
 app.post("/api/get-data", getData);
 app.post("/api/update-coords", updateCoords);
 

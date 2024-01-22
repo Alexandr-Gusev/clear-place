@@ -1,0 +1,6 @@
+PassengerAppRoot /home/hostXXXX/XXXX/clear-place/app
+PassengerAppType node
+PassengerStartupFile main.js
+PassengerNodejs /home/hostXXXX/node/bin/node
+PassengerRestartDir /home/hostXXXX/XXXX/clear-place/tmp
+SetEnv NODE_ENV production
