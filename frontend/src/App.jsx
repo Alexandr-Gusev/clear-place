@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react'
 import {YMaps, Map, Placemark, Button} from '@pbe/react-yandex-maps'
 import {useCookies} from 'react-cookie'
 import styles from './App.module.css'
-import {getData, updateCoords} from './api.js'
+import {getCoords, updateCoords, deleteCoords} from './api.js'
 
 /*
 Бытовая канализация: 150 000 ₽ за отрезок канализации диаметром 500 мм и длиной 20 м
@@ -23,7 +23,7 @@ const App = () => {
 
   useEffect(() => {
     const fetch = async () => {
-      const data = await getData()
+      const data = await getCoords()
       if (data) {
         setCookie('token', data.token, {path: '/', maxAge: 1e12})
         setAllCoords(data.allCoords)
@@ -50,10 +50,11 @@ const App = () => {
             controls: ['zoomControl', 'rulerControl', 'typeSelector', 'geolocationControl']
           }}
           onClick={!edit? undefined : async e => {
-            setCenter();
             const [latitude, longitude] = e.get('coords');
-            setCoords([latitude, longitude]);
             await updateCoords({latitude, longitude});
+            setCenter();
+            setCoords([latitude, longitude]);
+            setEdit(false)
           }}
           width='100%'
           height='100vh'
@@ -61,9 +62,20 @@ const App = () => {
           {coords.length > 0 && <Placemark geometry={coords} options={{iconColor: 'orange'}} />}
           {allCoords.map(({id, coords}) => <Placemark key={id} geometry={coords} options={{iconColor: 'green'}} />)}
           <Button
+            defaultOptions={{maxWidth: 200, selectOnClick: false}}
+            defaultData={{content: 'Удалить свою метку'}}
+            onClick={async () => {
+              if (coords.length > 0) {
+                await deleteCoords()
+                setCoords([])
+              }
+              setEdit(false)
+            }}
+          />
+          <Button
             defaultOptions={{maxWidth: 200}}
             defaultData={{content: 'Поставить свою метку'}}
-            state={edit}
+            state={{selected: edit}}
             onClick={() => {
               setEdit(!edit)
             }}

@@ -1,10 +1,10 @@
 export const ROOT_URL = `${document.location.protocol}//${document.location.hostname}`
 export const API_URL = `${ROOT_URL}/api`
 
-export const getData = async () => {
+export const getCoords = async () => {
   try {
     const res = await fetch(
-      `${API_URL}/get-data`,
+      `${API_URL}/get-coords`,
       {
         method: 'POST',
         headers: {
@@ -44,5 +44,28 @@ export const updateCoords = async coords => {
   } catch (error) {
     console.error(error)
     return false
+  }
+}
+
+export const deleteCoords = async () => {
+  try {
+    const res = await fetch(
+      `${API_URL}/delete-coords`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8'
+        },
+        credentials: 'include'
+      }
+    )
+    if (!res.ok) {
+      return undefined
+    }
+    const data = await res.json()
+    return data
+  } catch (error) {
+    console.error(error)
+    return undefined
   }
 }

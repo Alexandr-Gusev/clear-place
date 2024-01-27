@@ -6,7 +6,7 @@ const db = require("./db");
 const {v4: uuid4} = require("uuid");
 const PORT = process.env.PORT || 80;
 
-const getData = async (req, res) => {
+const getCoords = async (req, res) => {
 	try {
 		let {token} = req.cookies;
 		const allCoords = [];
@@ -19,7 +19,7 @@ const getData = async (req, res) => {
 			if (item.token === token) {
 				coords = [item.latitude, item.longitude];
 			} else {
-				allCoords.push({id: item.id, coords: [item.latitude, item.longitude]});
+				allCoords.push({id: item.user_id, coords: [item.latitude, item.longitude]});
 			}
 		}
 		if (!token) {
@@ -54,6 +54,23 @@ const updateCoords = async (req, res) => {
 	}
 };
 
+const deleteCoords = async (req, res) => {
+	try {
+		const [items] = await db.query(
+			"DELETE FROM coords WHERE token = ?",
+			[req.cookies.token]
+		);
+		if (items.affectedRows !== 1) {
+			res.status(403).json({error: "Bad token"});
+		} else {
+			res.status(200).json({});
+		}
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({error: "Unexpected error"});
+	}
+};
+
 const app = express();
 if (process.env.NODE_ENV !== 'production') {
 	app.use(cors({
@@ -72,7 +89,8 @@ app.use(express.static(path.join(__dirname, 'static')));
 if (process.env.NODE_ENV !== 'production') {
 	app.use(express.static(path.join(__dirname, '../frontend/dist')));
 }
-app.post("/api/get-data", getData);
+app.post("/api/get-coords", getCoords);
 app.post("/api/update-coords", updateCoords);
+app.post("/api/delete-coords", deleteCoords);
 
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
