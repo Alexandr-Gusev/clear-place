@@ -5,3 +5,14 @@
   align-items: center;
   justify-content: center;
 }
+
+.manifest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.manifestText {
+  text-align: justify;
+  padding-bottom: 28px;
+}

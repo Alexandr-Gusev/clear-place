@@ -6,12 +6,30 @@ const db = require("./db");
 const {v4: uuid4} = require("uuid");
 const PORT = process.env.PORT || 80;
 
+const BLOCK_UNKNOWN_TOKENS = true;
+
 const getCoords = async (req, res) => {
 	try {
 		let {token} = req.cookies;
+		if (token) {
+			const [users] = await db.query(
+				"SELECT * FROM coords WHERE token = ?",
+				[token]
+			);
+			if (users.length !== 1) {
+				if (BLOCK_UNKNOWN_TOKENS) {
+					res.status(403).json({error: "Bad token"});
+					return;
+				}
+				await db.query(
+					"INSERT INTO coords (token) VALUES (?)",
+					[token]
+				)
+            }
+		}
 		const allCoords = [];
 		let coords = [];
-		let [items] = await db.query(
+		const [items] = await db.query(
 			"SELECT * FROM coords WHERE latitude IS NOT NULL AND longitude IS NOT NULL",
 			[]
 		);
@@ -57,7 +75,7 @@ const updateCoords = async (req, res) => {
 const deleteCoords = async (req, res) => {
 	try {
 		const [items] = await db.query(
-			"DELETE FROM coords WHERE token = ?",
+			"UPDATE coords SET latitude = NULL, longitude = NULL WHERE token = ?",
 			[req.cookies.token]
 		);
 		if (items.affectedRows !== 1) {
