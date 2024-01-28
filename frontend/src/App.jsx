@@ -5,7 +5,6 @@ import Button from '@mui/material/Button'
 
 import styles from './App.module.css'
 import {getCoords, updateCoords} from './api.js'
-import {ConfirmDialog} from './ConfirmDialog'
 import {text as manifestText} from './manifest.json'
 
 /*
@@ -64,27 +63,50 @@ const App = () => {
       <YMaps query={{load: 'package.full'}}>
         <div className={styles.map}>
           <div>
-            <div className={styles.mapControlsContainer}>
-              <div className={styles.mapControls}>
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    setManifest(true)
-                    setEdit(false)
-                  }}
-                >
-                  Манифест
-                </Button>
-                <Button
-                  sx={buttonStyle(edit? 'darkorange' : 'darkgreen')}
-                  variant="contained"
-                  onClick={() => {
-                    setEdit(!edit)
-                  }}
-                >
-                  Метка
-                </Button>
-              </div>
+            <div className={styles.mapOverlays}>
+              {manifest && (
+                <div className={styles.manifest} style={{height: `${height}px`}}>
+                  <h1>Соседи</h1>
+                  <div className={styles.manifestText}>{manifestText}</div>
+                  <div className={styles.manifestControls}>
+                    <Button variant="contained" onClick={() => {
+                      setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
+                      setManifest(false)
+                      setEdit(true)
+                    }}>
+                      Поставить свою метку
+                    </Button>
+                    <Button variant="text" onClick={() => {
+                      setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
+                      setManifest(false)
+                    }}>
+                      Открыть карту
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {!manifest && (
+                <div className={styles.mapControls}>
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      setManifest(true)
+                      setEdit(false)
+                    }}
+                  >
+                    Манифест
+                  </Button>
+                  <Button
+                    sx={buttonStyle(edit? 'darkorange' : 'darkgreen')}
+                    variant="contained"
+                    onClick={() => {
+                      setEdit(!edit)
+                    }}
+                  >
+                    Метка
+                  </Button>
+                </div>
+              )}
             </div>
             <Map
               state={{
@@ -104,35 +126,11 @@ const App = () => {
               width="100%"
               height={`${height}px`}
             >
-              {coords.length > 0 && <Placemark geometry={coords} options={{iconColor: 'orange'}} />}
+              {coords.length > 0 && <Placemark geometry={coords} options={{iconColor: edit ? 'orange' : 'green'}} />}
               {allCoords.map(({id, coords}) => <Placemark key={id} geometry={coords} options={{iconColor: 'green'}} />)}
             </Map>
           </div>
         </div>
-        <ConfirmDialog
-          open={manifest}
-          fullScreen
-        >
-          <div className={styles.manifest}>
-            <h1>Соседи</h1>
-            <div className={styles.manifestText}>{manifestText}</div>
-            <div className={styles.manifestControls}>
-              <Button variant="contained" onClick={() => {
-                setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
-                setManifest(false)
-                setEdit(true)
-              }}>
-                Поставить свою метку
-              </Button>
-              <Button variant="text" onClick={() => {
-                setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
-                setManifest(false)
-              }}>
-                Открыть карту
-              </Button>
-            </div>
-          </div>
-        </ConfirmDialog>
       </YMaps>
     )
 }

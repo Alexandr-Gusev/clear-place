@@ -92,12 +92,7 @@ const deleteCoords = async (req, res) => {
 const app = express();
 if (process.env.NODE_ENV !== 'production') {
 	app.use(cors({
-		origin: [
-			"http://localhost:5173",
-			"http://127.0.0.1:5173",
-			"http://localhost:4173",
-			"http://127.0.0.1:4173"
-		],
+		origin: true,
 		credentials: true
 	}));
 }
