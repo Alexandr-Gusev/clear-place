@@ -16,17 +16,112 @@ import {text as manifestText} from './manifest.json'
 
 const buttonStyle = backgroundColor => ({backgroundColor, '&:hover': {backgroundColor}})
 
+const Splash = ({loading}) => {
+  return (
+    <div className={styles.splash}>
+      {loading? 'Загрузка...' : 'Что-то пошло не так'}
+    </div>
+  )
+}
+
+const Manifest = ({setCookie, onExit}) => (
+  <div className={styles.manifest} ref={element => element && element.scrollIntoView(true)}>
+    <h1>Соседи</h1>
+    <div className={styles.manifestText}>{manifestText}</div>
+    <div className={styles.manifestControls}>
+      <Button variant="contained" onClick={() => {
+        setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
+        onExit(true)
+      }}>
+        Поставить свою метку
+      </Button>
+      <Button variant="text" onClick={() => {
+        setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
+        onExit(false)
+      }}>
+        Открыть карту
+      </Button>
+    </div>
+  </div>
+)
+
+const Place = ({wantEdit, allCoords, coords, setCoords, setManifest}) => {
+  const [center, setCenter] = useState([45.074941, 39.029800])
+  const zoom = 17
+  const [height, setHeight] = useState(window.innerHeight)
+  const [edit, setEdit] = useState(wantEdit)
+
+  useEffect(() => {
+    const onWindowResize = () => {
+      setHeight(window.innerHeight)
+    }
+    onWindowResize()
+    window.addEventListener('resize', onWindowResize)
+    return () => {
+      window.removeEventListener('resize', onWindowResize)
+    }
+  }, [])
+
+  return (
+    <YMaps query={{load: 'package.full'}}>
+      <div className={styles.map}>
+        <div ref={element => element && element.scrollIntoView(true)}>
+          <div className={styles.mapOverlay}>
+            <div className={styles.mapControls}>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setManifest(true)
+                }}
+              >
+                Манифест
+              </Button>
+              <Button
+                sx={buttonStyle(edit? 'darkorange' : 'darkgreen')}
+                variant="contained"
+                onClick={() => {
+                  setEdit(!edit)
+                }}
+              >
+                Метка
+              </Button>
+            </div>
+          </div>
+          <Map
+            state={{
+              center,
+              zoom,
+              controls: ['zoomControl', 'rulerControl', 'typeSelector', 'geolocationControl']
+            }}
+            onClick={async e => {
+              setCenter()
+              if (edit) {
+                const [latitude, longitude] = e.get('coords')
+                await updateCoords({latitude, longitude})
+                setCoords([latitude, longitude])
+                setEdit(false)
+              }
+            }}
+            width="100%"
+            height={`${height}px`}
+          >
+            {coords.length > 0 && <Placemark geometry={coords} options={{iconColor: edit ? 'orange' : 'green'}} />}
+            {allCoords.map(({id, coords}) => <Placemark key={id} geometry={coords} options={{iconColor: 'green'}} />)}
+          </Map>
+        </div>
+      </div>
+    </YMaps>
+  )
+}
+
 const App = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [cookies, setCookie] = useCookies(['token', 'manifest'])
   const [allCoords, setAllCoords] = useState([])
   const [coords, setCoords] = useState([])
-  const [center, setCenter] = useState([45.074941, 39.029800])
-  const zoom = 17
   const [manifest, setManifest] = useState(cookies.manifest !== 'ok')
-  const [edit, setEdit] = useState(false)
-  const [height, setHeight] = useState(window.innerHeight)
+  const [wantEdit, setWantEdit] = useState(false)
 
   useEffect(() => {
     const fetch = async () => {
@@ -42,97 +137,23 @@ const App = () => {
     fetch()
   }, [setCookie, setAllCoords, setCoords, setLoading, setError])
 
-  useEffect(() => {
-    const onWindowResize = () => {
-      setHeight(window.innerHeight)
-    }
-    onWindowResize()
-    window.addEventListener('resize', onWindowResize)
-    return () => {
-      window.removeEventListener('resize', onWindowResize)
-    }
-  }, [])
+  if (loading || error) {
+    return <Splash loading={loading} />
+  }
 
-  return loading || error
-    ? (
-      <div className={styles.splash}>
-        {loading? 'Загрузка...' : 'Что-то пошло не так'}
-      </div>
+  if (manifest) {
+    return (
+      <Manifest
+        setCookie={setCookie}
+        onExit={value => {
+          setWantEdit(value)
+          setManifest(false)
+        }}
+      />
     )
-    : (
-      <YMaps query={{load: 'package.full'}}>
-        <div className={styles.map}>
-          <div>
-            <div className={styles.mapOverlays}>
-              {manifest && (
-                <div className={styles.manifest} style={{height: `${height}px`}}>
-                  <h1>Соседи</h1>
-                  <div className={styles.manifestText}>{manifestText}</div>
-                  <div className={styles.manifestControls}>
-                    <Button variant="contained" onClick={() => {
-                      setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
-                      setManifest(false)
-                      setEdit(true)
-                    }}>
-                      Поставить свою метку
-                    </Button>
-                    <Button variant="text" onClick={() => {
-                      setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
-                      setManifest(false)
-                    }}>
-                      Открыть карту
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {!manifest && (
-                <div className={styles.mapControls}>
-                  <Button
-                    variant="contained"
-                    onClick={() => {
-                      setManifest(true)
-                      setEdit(false)
-                    }}
-                  >
-                    Манифест
-                  </Button>
-                  <Button
-                    sx={buttonStyle(edit? 'darkorange' : 'darkgreen')}
-                    variant="contained"
-                    onClick={() => {
-                      setEdit(!edit)
-                    }}
-                  >
-                    Метка
-                  </Button>
-                </div>
-              )}
-            </div>
-            <Map
-              state={{
-                center,
-                zoom,
-                controls: ['zoomControl', 'rulerControl', 'typeSelector', 'geolocationControl']
-              }}
-              onClick={async e => {
-                setCenter()
-                if (edit) {
-                  const [latitude, longitude] = e.get('coords')
-                  await updateCoords({latitude, longitude})
-                  setCoords([latitude, longitude])
-                  setEdit(false)
-                }
-              }}
-              width="100%"
-              height={`${height}px`}
-            >
-              {coords.length > 0 && <Placemark geometry={coords} options={{iconColor: edit ? 'orange' : 'green'}} />}
-              {allCoords.map(({id, coords}) => <Placemark key={id} geometry={coords} options={{iconColor: 'green'}} />)}
-            </Map>
-          </div>
-        </div>
-      </YMaps>
-    )
+  }
+
+  return <Place wantEdit={wantEdit} allCoords={allCoords} coords={coords} setCoords={setCoords} setManifest={setManifest} />
 }
 
 export default App
