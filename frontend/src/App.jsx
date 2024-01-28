@@ -1,10 +1,10 @@
 import {useState, useEffect} from 'react'
-import {YMaps, Map, Placemark, Button as YButton} from '@pbe/react-yandex-maps'
+import {YMaps, Map, Placemark} from '@pbe/react-yandex-maps'
 import {useCookies} from 'react-cookie'
 import Button from '@mui/material/Button'
 
 import styles from './App.module.css'
-import {getCoords, updateCoords, deleteCoords} from './api.js'
+import {getCoords, updateCoords} from './api.js'
 import {ConfirmDialog} from './ConfirmDialog'
 import {text as manifestText} from './manifest.json'
 
@@ -15,6 +15,8 @@ import {text as manifestText} from './manifest.json'
 Тротуар: 30 000 ₽ за отрезок тротуара без бордюров шириной 1 м и длиной 20 м
 */
 
+const buttonStyle = backgroundColor => ({backgroundColor, '&:hover': {backgroundColor}})
+
 const App = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -23,9 +25,9 @@ const App = () => {
   const [coords, setCoords] = useState([])
   const [center, setCenter] = useState([45.074941, 39.029800])
   const zoom = 17
-  const [edit, setEdit] = useState(false)
-  const [deleteDialog, setDeleteDialog] = useState(false);
   const [manifest, setManifest] = useState(cookies.manifest !== 'ok')
+  const [edit, setEdit] = useState(false)
+  const [height, setHeight] = useState(window.innerHeight)
 
   useEffect(() => {
     const fetch = async () => {
@@ -35,11 +37,22 @@ const App = () => {
         setAllCoords(data.allCoords)
         setCoords(data.coords)
       }
-      setLoading(false)
       setError(data === undefined)
+      setLoading(false)
     }
     fetch()
   }, [setCookie, setAllCoords, setCoords, setLoading, setError])
+
+  useEffect(() => {
+    const onWindowResize = () => {
+      setHeight(window.innerHeight)
+    }
+    onWindowResize()
+    window.addEventListener('resize', onWindowResize)
+    return () => {
+      window.removeEventListener('resize', onWindowResize)
+    }
+  }, [])
 
   return loading || error
     ? (
@@ -49,50 +62,53 @@ const App = () => {
     )
     : (
       <YMaps query={{load: 'package.full'}}>
-        <Map
-          state={{
-            center,
-            zoom,
-            controls: ['zoomControl', 'rulerControl', 'typeSelector', 'geolocationControl']
-          }}
-          onClick={!edit? undefined : async e => {
-            const [latitude, longitude] = e.get('coords');
-            await updateCoords({latitude, longitude});
-            setCenter();
-            setCoords([latitude, longitude]);
-            setEdit(false)
-          }}
-          width='100%'
-          height='100vh'
-        >
-          {coords.length > 0 && <Placemark geometry={coords} options={{iconColor: 'orange'}} />}
-          {allCoords.map(({id, coords}) => <Placemark key={id} geometry={coords} options={{iconColor: 'green'}} />)}
-          <YButton
-            defaultOptions={{maxWidth: 200, selectOnClick: false}}
-            defaultData={{content: 'Удалить свою метку'}}
-            onClick={() => {
-              setEdit(false)
-              if (coords.length > 0) {
-                setDeleteDialog(true)
-              }
-            }}
-          />
-          <YButton
-            defaultOptions={{maxWidth: 200}}
-            defaultData={{content: 'Поставить свою метку'}}
-            state={{selected: edit}}
-            onClick={() => {
-              setEdit(!edit)
-            }}
-          />
-          <YButton
-            defaultOptions={{maxWidth: 200, selectOnClick: false}}
-            defaultData={{content: 'Манифест'}}
-            onClick={() => {
-              setManifest(true)
-            }}
-          />
-        </Map>
+        <div className={styles.map}>
+          <div>
+            <div className={styles.mapControlsContainer}>
+              <div className={styles.mapControls}>
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    setManifest(true)
+                    setEdit(false)
+                  }}
+                >
+                  Манифест
+                </Button>
+                <Button
+                  sx={buttonStyle(edit? 'darkorange' : 'darkgreen')}
+                  variant="contained"
+                  onClick={() => {
+                    setEdit(!edit)
+                  }}
+                >
+                  Метка
+                </Button>
+              </div>
+            </div>
+            <Map
+              state={{
+                center,
+                zoom,
+                controls: ['zoomControl', 'rulerControl', 'typeSelector', 'geolocationControl']
+              }}
+              onClick={async e => {
+                setCenter()
+                if (edit) {
+                  const [latitude, longitude] = e.get('coords')
+                  await updateCoords({latitude, longitude})
+                  setCoords([latitude, longitude])
+                  setEdit(false)
+                }
+              }}
+              width="100%"
+              height={`${height}px`}
+            >
+              {coords.length > 0 && <Placemark geometry={coords} options={{iconColor: 'orange'}} />}
+              {allCoords.map(({id, coords}) => <Placemark key={id} geometry={coords} options={{iconColor: 'green'}} />)}
+            </Map>
+          </div>
+        </div>
         <ConfirmDialog
           open={manifest}
           fullScreen
@@ -100,25 +116,22 @@ const App = () => {
           <div className={styles.manifest}>
             <h1>Соседи</h1>
             <div className={styles.manifestText}>{manifestText}</div>
-            <Button variant="contained" onClick={() => {
-              setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
-              setManifest(false)
-              setEdit(true)
-            }}>
-              Поставить свою метку
-            </Button>
+            <div className={styles.manifestControls}>
+              <Button variant="contained" onClick={() => {
+                setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
+                setManifest(false)
+                setEdit(true)
+              }}>
+                Поставить свою метку
+              </Button>
+              <Button variant="text" onClick={() => {
+                setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
+                setManifest(false)
+              }}>
+                Открыть карту
+              </Button>
+            </div>
           </div>
-        </ConfirmDialog>
-        <ConfirmDialog
-          open={deleteDialog}
-          onAccept={async () => {
-            setDeleteDialog(false)
-            await deleteCoords()
-            setCoords([])
-          }}
-          onCancel={() => setDeleteDialog(false)}
-        >
-          Вы точно хотите удалить свою метку?
         </ConfirmDialog>
       </YMaps>
     )

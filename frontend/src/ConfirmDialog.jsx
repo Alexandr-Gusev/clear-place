@@ -6,7 +6,7 @@ import DialogActions from "@mui/material/DialogActions";
 
 export const ConfirmDialog = ({open, fullScreen, title, children, onAccept, onCancel, onAcceptText = "OK", onCancelText = "Отмена"}) => {
   return (
-    <Dialog open={open} fullScreen={fullScreen} onClose={onCancel}>
+    <Dialog open={open} fullScreen={fullScreen} onClose={onCancel} transitionDuration={fullScreen ? 0 : undefined}>
       {title && <DialogTitle>{title}</DialogTitle>}
       <DialogContent>
         {children}
