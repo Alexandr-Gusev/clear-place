@@ -5,14 +5,6 @@ import Button from '@mui/material/Button'
 
 import styles from './App.module.css'
 import {getCoords, updateCoords} from './api.js'
-import {text as manifestText} from './manifest.json'
-
-/*
-Бытовая канализация: 150 000 ₽ за отрезок канализации диаметром 500 мм и длиной 20 м
-Ливневая канализация: 75 000 ₽ за отрезок канализации диаметром 250 мм и длиной 20 м
-Дорога: 100 000 ₽ за отрезок дороги без бордюров шириной 3.5 м и длиной 20 м
-Тротуар: 30 000 ₽ за отрезок тротуара без бордюров шириной 1 м и длиной 20 м
-*/
 
 const buttonStyle = backgroundColor => ({backgroundColor, '&:hover': {backgroundColor}})
 
@@ -24,10 +16,29 @@ const Splash = ({loading}) => {
   )
 }
 
-const Manifest = ({setCookie, onExit}) => (
+const Manifest = ({count, setCookie, onExit}) => (
   <div className={styles.manifest} ref={element => element && element.scrollIntoView(true)}>
     <h1>Соседи</h1>
-    <div className={styles.manifestText}>{manifestText}</div>
+    <div className={styles.manifestText}>
+      <h2>Для комфортной жизни всем нам требуется инфраструктура. Построить ее можно только всем вместе.</h2>
+      <h2>Расчет</h2>
+      <ul>
+        <li>Количество участков: 400 шт</li>
+        <li>Длина дорог: 8000 м</li>
+        <li>Длина дорог на один участок: 20 м</li>
+        <li>Бытовая канализация: 150 000 ₽ за отрезок канализации диаметром 500 мм и длиной 20 м</li>
+        <li>Ливневая канализация: 75 000 ₽ за отрезок канализации диаметром 250 мм и длиной 20 м</li>
+        <li>Дорога: 100 000 ₽ за отрезок дороги без бордюров шириной 3.5 м и длиной 20 м</li>
+        <li>Тротуар: 30 000 ₽ за отрезок тротуара без бордюров шириной 1 м и длиной 20 м</li>
+        <li>Всего на один участок: 355 000 ₽ (10 000 ₽ в месяц в течение 3-х лет)</li>
+      </ul>
+      <h2>Справочные материалы</h2>
+      <ul>
+        <li><a href="https://asfalt23.ru/">Асфальтирование</a></li>
+        <li><a href="https://vodootvedeniekrd.ru/livnevaja-kanalizacija/">Канализация</a></li>
+      </ul>
+      <h2>Нас уже {count} человек. Присоединяйтесь. Поставьте метку на своем участке чтобы мы знали, что вы с нами.</h2>
+    </div>
     <div className={styles.manifestControls}>
       <Button variant="contained" onClick={() => {
         setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
@@ -39,7 +50,7 @@ const Manifest = ({setCookie, onExit}) => (
         setCookie('manifest', 'ok', {path: '/', maxAge: 1e12})
         onExit(false)
       }}>
-        Открыть карту
+        Показать карту
       </Button>
     </div>
   </div>
@@ -144,6 +155,7 @@ const App = () => {
   if (manifest) {
     return (
       <Manifest
+        count={allCoords.length + (coords.length > 0 ? 1 : 0)}
         setCookie={setCookie}
         onExit={value => {
           setWantEdit(value)
